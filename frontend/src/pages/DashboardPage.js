@@ -11,6 +11,23 @@ moment.locale('zh-cn');
 
 const { Title, Text } = Typography;
 
+// 自定义日期格式化函数，增强健壮性
+const formatDate = (dateString, format = 'YYYY-MM-DD') => {
+  if (!dateString) return '未设置';
+  const m = moment(dateString);
+  return m.isValid() ? m.format(format) : '无效日期';
+};
+
+// 日期解析函数，确保一致的日期处理
+const parseDate = (dateString) => {
+  if (!dateString) return null;
+  
+  const m = moment(dateString);
+  if (!m.isValid()) return null;
+  
+  return m;
+};
+
 const DashboardPage = () => {
   const { user, updateUser } = useAuth();
   const [loading, setLoading] = useState(false);
@@ -39,11 +56,14 @@ const DashboardPage = () => {
   };
 
   const handleEdit = () => {
-    // 填充表单，使用moment处理日期
+    console.log('当前用户生日:', user?.birthday);
+    
+    // 填充表单，使用parseDate函数处理日期，确保转换的一致性
     form.setFieldsValue({
-      email: user.email,
-      birthday: user.birthday ? moment(user.birthday, 'YYYY-MM-DD') : null,
+      email: user?.email || '',
+      birthday: user?.birthday ? parseDate(user.birthday) : null,
     });
+    
     setEditModalVisible(true);
   };
 
@@ -52,13 +72,21 @@ const DashboardPage = () => {
       const values = await form.validateFields();
       setLoading(true);
       
-      // 使用moment格式化生日
-      if (values.birthday) {
-        values.birthday = values.birthday.format('YYYY-MM-DD'); // 使用moment的format方法
+      // 准备提交数据
+      const userData = { ...values };
+      
+      // 使用moment格式化生日，确保格式一致
+      if (userData.birthday) {
+        // 确保生日是moment对象后再格式化
+        userData.birthday = moment.isMoment(userData.birthday) 
+          ? userData.birthday.format('YYYY-MM-DD')
+          : moment(userData.birthday).format('YYYY-MM-DD');
       }
       
+      console.log('提交的生日数据:', userData.birthday);
+      
       // 更新用户信息
-      await userAPI.updateUser(values);
+      await userAPI.updateUser(userData);
       message.success('用户信息更新成功');
       
       // 重新获取用户信息
@@ -66,7 +94,7 @@ const DashboardPage = () => {
       setEditModalVisible(false);
     } catch (error) {
       console.error('更新用户信息失败:', error);
-      message.error('更新用户信息失败');
+      message.error('更新用户信息失败: ' + (error.response?.data?.detail || '未知错误'));
     } finally {
       setLoading(false);
     }
@@ -124,13 +152,6 @@ const DashboardPage = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  // 修改为使用moment格式化日期函数
-  const formatDate = (dateString, format = 'YYYY-MM-DD') => {
-    if (!dateString) return '未设置';
-    const m = moment(dateString);
-    return m.isValid() ? m.format(format) : '无效日期';
   };
 
   return (
@@ -252,7 +273,10 @@ const DashboardPage = () => {
               prefix={<CalendarOutlined />}
               format="YYYY-MM-DD"
               placeholder="请选择生日"
+              inputReadOnly={true}
               disabledDate={current => current && current > moment().endOf('day')}
+              getPopupContainer={triggerNode => triggerNode.parentNode}
+              popupStyle={{ zIndex: 1050 }}
             />
           </Form.Item>
         </Form>
