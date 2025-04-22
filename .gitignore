@@ -1,0 +1,91 @@
+# 通用操作系统
+.DS_Store
+Thumbs.db
+._*
+.Trashes
+ehthumbs.db
+desktop.ini
+
+# 编辑器和IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+*.sublime-workspace
+*.sublime-project
+
+# 环境和配置文件
+.env
+.env.local
+.env.development
+.env.production
+*.pem
+*.log
+
+# 前端 (Node.js/React)
+frontend/node_modules/
+frontend/build/
+frontend/dist/
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+frontend/coverage/
+frontend/.pnp/
+frontend/.pnp.js
+frontend/package-lock.json
+frontend/yarn.lock
+
+# 后端 (Python)
+backend/__pycache__/
+backend/*.py[cod]
+backend/*$py.class
+backend/.pytest_cache/
+backend/.coverage
+backend/htmlcov/
+backend/.tox/
+backend/.nox/
+backend/venv/
+backend/env/
+backend/.env
+backend/.venv
+backend/ENV/
+backend/.eggs/
+backend/lib/
+backend/lib64/
+backend/sdist/
+backend/wheels/
+backend/*.egg-info/
+backend/*.egg
+
+# 数据库
+*.sqlite3
+*.db
+
+# Docker
+.docker/
+docker-compose.override.yml
+
+# 日志文件
+logs/
+*.log
+
+# 测试
+.coverage
+htmlcov/
+
+# 临时文件
+tmp/
+temp/
+.tmp/
+.temp/
+
+# 上传文件夹(可选，视项目需要而定)
+uploads/
+media/
+
+# MinIO本地数据(如果在本地使用MinIO)
+minio-data/
+
+# MySQL本地数据(如果在本地使用MySQL)
+mysql-data/
