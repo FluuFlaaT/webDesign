@@ -2,6 +2,15 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import os
 from dotenv import load_dotenv
+from database import engine, Base, init_db
+import models
+from routers import auth, users, contacts, articles
+import logging
+import time
+
+# 设置日志
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # 加载环境变量
 load_dotenv()
@@ -30,16 +39,28 @@ async def health_check():
 API_V1_PREFIX = "/api/v1"
 
 # 引入API路由
-# 在后续Sprint中添加的路由...
+app.include_router(auth.router, prefix=API_V1_PREFIX)
+app.include_router(users.router, prefix=API_V1_PREFIX)
+app.include_router(contacts.router, prefix=API_V1_PREFIX)
+app.include_router(articles.router, prefix=API_V1_PREFIX)
 
 # 启动事件
 @app.on_event("startup")
 async def startup_event():
-    # 将在后续Sprint中添加数据库连接和初始化逻辑
-    print("FastAPI应用已启动")
+    logger.info("FastAPI应用正在启动...")
+    
+    # 尝试初始化数据库连接和表
+    try:
+        logger.info("尝试初始化数据库...")
+        init_db(max_retries=10, retry_interval=5)
+        logger.info("数据库初始化成功")
+    except Exception as e:
+        logger.error(f"数据库初始化失败: {str(e)}")
+        logger.warning("应用将继续启动，但部分功能可能不可用")
+    
+    logger.info("FastAPI应用已启动")
 
 # 关闭事件
 @app.on_event("shutdown")
 async def shutdown_event():
-    # 将在后续Sprint中添加数据库关闭逻辑
-    print("FastAPI应用已关闭")
+    logger.info("FastAPI应用已关闭")

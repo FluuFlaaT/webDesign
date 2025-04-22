@@ -89,3 +89,5 @@ minio-data/
 
 # MySQL本地数据(如果在本地使用MySQL)
 mysql-data/
+
+__pycache__/

@@ -1,17 +1,84 @@
-.site-layout-content {
-  min-height: 280px;
-  padding: 24px;
-}
-
+/* 全局样式 */
 .logo {
   float: left;
   width: 120px;
-  height: 31px;
-  margin: 16px 24px 16px 0;
+  height: 32px;
+  margin: 16px;
   background: rgba(255, 255, 255, 0.3);
 }
 
 .ant-row-rtl .logo {
   float: right;
   margin: 16px 0 16px 24px;
+}
+
+.site-layout-content {
+  min-height: 280px;
+  padding: 24px;
+}
+
+/* 表格样式优化 */
+.ant-table {
+  font-size: 14px;
+}
+
+.ant-table-thead > tr > th {
+  font-weight: 600;
+}
+
+/* 登录和注册页面样式 */
+.login-container, .register-container {
+  max-width: 400px;
+  margin: 0 auto;
+  margin-top: 100px;
+}
+
+/* 仪表盘统计图表容器 */
+.chart-container {
+  height: 400px;
+}
+
+/* 响应式布局调整 */
+@media (max-width: 768px) {
+  .ant-table {
+    font-size: 12px;
+  }
+  
+  .chart-container {
+    height: 300px;
+  }
+}
+
+/* 文本溢出处理 */
+.ellipsis {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 动画效果 */
+.fade-in {
+  animation: fadeIn 0.5s;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* 加载动画容器 */
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+/* 主题切换过渡效果 */
+.theme-transition {
+  transition: all 0.3s ease;
 }
