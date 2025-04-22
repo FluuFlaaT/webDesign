@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Form, Input, Button, DatePicker, Card, message, Typography, Upload, Avatar } from 'antd';
-import { UserOutlined, LockOutlined, MailOutlined, UploadOutlined, PlusOutlined } from '@ant-design/icons';
+import { UserOutlined, LockOutlined, MailOutlined, UploadOutlined, PlusOutlined, CalendarOutlined } from '@ant-design/icons';
 import { Link, useNavigate } from 'react-router-dom';
 import { authAPI } from '../../services/api';
 
@@ -204,8 +204,17 @@ const Register = () => {
             <Input.Password prefix={<LockOutlined />} placeholder="确认密码" />
           </Form.Item>
 
-          <Form.Item name="birthday" label="生日 (可选)">
-            <DatePicker style={{ width: '100%' }} />
+          <Form.Item 
+            name="birthday" 
+            label="生日" 
+            rules={[{ required: true, message: '请选择您的生日!' }]}
+          >
+            <DatePicker 
+              style={{ width: '100%' }} 
+              placeholder="选择生日"
+              format="YYYY-MM-DD"
+              prefix={<CalendarOutlined />} 
+            />
           </Form.Item>
 
           <Form.Item>
