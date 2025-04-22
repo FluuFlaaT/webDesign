@@ -12,6 +12,7 @@ import {
 } from '@ant-design/icons';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import moment from 'moment';
 
 const { Header, Sider, Content, Footer } = Layout;
 
@@ -162,7 +163,7 @@ const AppLayout = ({ children, toggleTheme, isDarkMode }) => {
             textAlign: 'center',
           }}
         >
-          文章及用户管理系统 ©{new Date().getFullYear()} Web全栈实践项目
+          文章及用户管理系统 ©{moment().year()} Web全栈实践项目
         </Footer>
       </Layout>
     </Layout>

@@ -73,3 +73,30 @@ def change_password(password_data: schemas.PasswordChange, db: Session = Depends
     user.hashed_password = get_password_hash(password_data.new_password)
     db.commit()
     return {"message": "密码修改成功"}
+
+
+@router.post("/verify-birthday", status_code=status.HTTP_200_OK)
+def verify_birthday(verification_data: schemas.BirthdayVerification, db: Session = Depends(get_db)):
+    """验证生日以重置密码"""
+    user = db.query(models.User).filter(models.User.username == verification_data.username).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="用户不存在")
+    
+    # 验证生日是否匹配
+    if not user.birthday or user.birthday != verification_data.birthday:
+        raise HTTPException(status_code=400, detail="生日信息不匹配")
+    
+    return {"message": "验证成功", "verified": True}
+
+
+@router.post("/reset-password", status_code=status.HTTP_200_OK)
+def reset_password(reset_data: schemas.PasswordReset, db: Session = Depends(get_db)):
+    """重置密码"""
+    user = db.query(models.User).filter(models.User.username == reset_data.username).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="用户不存在")
+    
+    # 更新密码
+    user.hashed_password = get_password_hash(reset_data.new_password)
+    db.commit()
+    return {"message": "密码重置成功"}

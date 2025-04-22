@@ -1,4 +1,5 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
+import moment from 'moment';
 
 const AuthContext = createContext(null);
 
@@ -32,8 +33,8 @@ export const AuthProvider = ({ children }) => {
                 userData.avatar_url = `${BASE_URL}${userData.avatar_url}`;
               }
               
-              // 添加时间戳防止缓存
-              userData.avatar_url = `${userData.avatar_url}?t=${new Date().getTime()}`;
+              // 添加时间戳防止缓存，使用moment获取时间戳
+              userData.avatar_url = `${userData.avatar_url}?t=${moment().valueOf()}`;
             }
             
             setUser(userData);

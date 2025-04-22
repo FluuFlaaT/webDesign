@@ -2,7 +2,12 @@ import React, { useState } from 'react';
 import { Form, Input, Button, DatePicker, Card, message, Typography, Upload, Avatar } from 'antd';
 import { UserOutlined, LockOutlined, MailOutlined, UploadOutlined, PlusOutlined } from '@ant-design/icons';
 import { Link, useNavigate } from 'react-router-dom';
-import { authAPI } from '../../services/api';
+import { authAPI, userAPI } from '../../services/api';
+import moment from 'moment';
+import 'moment/locale/zh-cn';
+
+// 设置moment本地化为中文
+moment.locale('zh-cn');
 
 const { Title } = Typography;
 
@@ -54,14 +59,8 @@ const Register = () => {
           const avatarFormData = new FormData();
           avatarFormData.append('file', avatar);
           
-          // 上传头像
-          await fetch('http://localhost:8000/api/v1/users/avatar', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${loginResponse.data.access_token}`,
-            },
-            body: avatarFormData
-          });
+          // 上传头像（使用统一的API地址）
+          await userAPI.uploadAvatar(avatar);
           
           // 清除令牌以防止自动登录
           localStorage.removeItem('token');
@@ -204,8 +203,17 @@ const Register = () => {
             <Input.Password prefix={<LockOutlined />} placeholder="确认密码" />
           </Form.Item>
 
-          <Form.Item name="birthday" label="生日 (可选)">
-            <DatePicker style={{ width: '100%' }} />
+          <Form.Item 
+            name="birthday" 
+            label="生日" 
+            rules={[{ required: true, message: '请选择您的生日!' }]}
+          >
+            <DatePicker 
+              style={{ width: '100%' }} 
+              placeholder="请选择您的生日" 
+              format="YYYY-MM-DD"
+              disabledDate={current => current && current > moment().endOf('day')}
+            />
           </Form.Item>
 
           <Form.Item>

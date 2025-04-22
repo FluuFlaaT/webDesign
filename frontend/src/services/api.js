@@ -49,6 +49,16 @@ export const authAPI = {
   changePassword: (passwordData) => {
     return api.post('/auth/change-password', passwordData);
   },
+
+  // 验证生日以重置密码
+  verifyBirthday: (username, birthday) => {
+    return api.post('/auth/verify-birthday', { username, birthday });
+  },
+
+  // 重置密码
+  resetPassword: (resetData) => {
+    return api.post('/auth/reset-password', resetData);
+  },
 };
 
 // 用户相关 API

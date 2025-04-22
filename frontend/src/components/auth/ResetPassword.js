@@ -1,8 +1,13 @@
 import React, { useState } from 'react';
-import { Form, Input, Button, Card, message, Typography, Steps } from 'antd';
-import { UserOutlined, LockOutlined, MailOutlined } from '@ant-design/icons';
-import { Link } from 'react-router-dom';
+import { Form, Input, Button, Card, message, Typography, Steps, DatePicker } from 'antd';
+import { UserOutlined, LockOutlined, CalendarOutlined } from '@ant-design/icons';
+import { Link, useNavigate } from 'react-router-dom';
 import { authAPI } from '../../services/api';
+import moment from 'moment';
+import 'moment/locale/zh-cn';
+
+// 设置moment本地化为中文
+moment.locale('zh-cn');
 
 const { Title, Paragraph } = Typography;
 const { Step } = Steps;
@@ -10,45 +15,34 @@ const { Step } = Steps;
 const ResetPassword = () => {
   const [loading, setLoading] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
-  const [email, setEmail] = useState('');
-  const [resetCode, setResetCode] = useState('');
+  const [username, setUsername] = useState('');
+  const navigate = useNavigate();
   const [form] = Form.useForm();
 
-  // 第一步：请求重置密码
-  const requestReset = async (values) => {
+  // 第一步：验证用户名和生日
+  const verifyIdentity = async (values) => {
     setLoading(true);
     try {
-      // 这里应该调用后端API来发送重置邮件
-      // 由于这是一个模拟实现，我们只是假装发送了重置邮件
-      message.success('重置密码链接已发送到您的邮箱，请查收！');
-      setEmail(values.email);
+      // 使用moment格式化日期
+      const formattedDate = values.birthday.format('YYYY-MM-DD');
+      const response = await authAPI.verifyBirthday(values.username, formattedDate);
+      
+      message.success('身份验证成功！');
+      setUsername(values.username);
       setCurrentStep(1);
     } catch (error) {
-      console.error('请求重置密码失败:', error);
-      message.error('发送重置邮件失败，请重试');
+      console.error('身份验证失败:', error);
+      if (error.response && error.response.data) {
+        message.error('验证失败: ' + error.response.data.detail);
+      } else {
+        message.error('用户名或生日不匹配，请重试');
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  // 第二步：验证重置码
-  const verifyCode = async (values) => {
-    setLoading(true);
-    try {
-      // 这里应该调用后端API来验证重置码
-      // 由于这是一个模拟实现，我们只是假装验证了重置码
-      setResetCode(values.resetCode);
-      setCurrentStep(2);
-      message.success('验证码验证成功，请设置新密码');
-    } catch (error) {
-      console.error('验证重置码失败:', error);
-      message.error('验证码无效或已过期，请重试');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // 第三步：设置新密码
+  // 第二步：设置新密码
   const resetPassword = async (values) => {
     if (values.newPassword !== values.confirmPassword) {
       message.error('两次输入的密码不一致！');
@@ -57,13 +51,21 @@ const ResetPassword = () => {
 
     setLoading(true);
     try {
-      // 这里应该调用后端API来重置密码
-      // 由于这是一个模拟实现，我们只是假装重置了密码
+      // 调用重置密码API
+      await authAPI.resetPassword({
+        username: username,
+        new_password: values.newPassword
+      });
+      
       message.success('密码已成功重置，请使用新密码登录');
-      setCurrentStep(3);
+      setCurrentStep(2);
     } catch (error) {
       console.error('重置密码失败:', error);
-      message.error('重置密码失败，请重试');
+      if (error.response && error.response.data) {
+        message.error('重置失败: ' + error.response.data.detail);
+      } else {
+        message.error('重置密码失败，请重试');
+      }
     } finally {
       setLoading(false);
     }
@@ -76,55 +78,40 @@ const ResetPassword = () => {
         return (
           <Form
             form={form}
-            name="resetRequest"
-            onFinish={requestReset}
+            name="identityVerification"
+            onFinish={verifyIdentity}
             layout="vertical"
           >
             <Form.Item
-              name="email"
-              label="电子邮箱"
-              rules={[
-                { required: true, message: '请输入邮箱!' },
-                { type: 'email', message: '请输入有效的邮箱地址!' }
-              ]}
+              name="username"
+              label="用户名"
+              rules={[{ required: true, message: '请输入用户名!' }]}
             >
-              <Input prefix={<MailOutlined />} placeholder="请输入您注册时使用的邮箱" />
+              <Input prefix={<UserOutlined />} placeholder="请输入您的用户名" />
+            </Form.Item>
+
+            <Form.Item
+              name="birthday"
+              label="生日"
+              rules={[{ required: true, message: '请选择您的生日!' }]}
+            >
+              <DatePicker 
+                style={{ width: '100%' }} 
+                prefix={<CalendarOutlined />}
+                placeholder="请选择您注册时填写的生日"
+                format="YYYY-MM-DD"
+                disabledDate={current => current && current > moment().endOf('day')}
+              />
             </Form.Item>
 
             <Form.Item>
               <Button type="primary" htmlType="submit" loading={loading} block>
-                获取重置链接
+                验证身份
               </Button>
             </Form.Item>
           </Form>
         );
       case 1:
-        return (
-          <Form
-            form={form}
-            name="verifyCode"
-            onFinish={verifyCode}
-            layout="vertical"
-          >
-            <Paragraph>
-              我们已向 {email} 发送了一封包含验证码的邮件。请检查您的收件箱并输入验证码。
-            </Paragraph>
-            <Form.Item
-              name="resetCode"
-              label="验证码"
-              rules={[{ required: true, message: '请输入验证码!' }]}
-            >
-              <Input placeholder="请输入6位验证码" />
-            </Form.Item>
-
-            <Form.Item>
-              <Button type="primary" htmlType="submit" loading={loading} block>
-                验证
-              </Button>
-            </Form.Item>
-          </Form>
-        );
-      case 2:
         return (
           <Form
             form={form}
@@ -168,12 +155,12 @@ const ResetPassword = () => {
             </Form.Item>
           </Form>
         );
-      case 3:
+      case 2:
         return (
           <div style={{ textAlign: 'center' }}>
             <Paragraph>密码已成功重置！</Paragraph>
-            <Button type="primary">
-              <Link to="/login">返回登录</Link>
+            <Button type="primary" onClick={() => navigate('/login')}>
+              返回登录
             </Button>
           </div>
         );
@@ -194,7 +181,6 @@ const ResetPassword = () => {
           size="small"
           style={{ marginBottom: 24 }}
         >
-          <Step title="提交邮箱" />
           <Step title="验证身份" />
           <Step title="重置密码" />
           <Step title="完成" />
@@ -202,7 +188,7 @@ const ResetPassword = () => {
 
         {renderStepContent()}
 
-        {currentStep < 3 && (
+        {currentStep < 2 && (
           <div style={{ marginTop: 16, textAlign: 'center' }}>
             <Link to="/login">返回登录</Link>
           </div>

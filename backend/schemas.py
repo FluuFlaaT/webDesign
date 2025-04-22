@@ -108,6 +108,16 @@ class PasswordChange(BaseModel):
     new_password: str
 
 
+class BirthdayVerification(BaseModel):
+    username: str
+    birthday: date
+
+
+class PasswordReset(BaseModel):
+    username: str
+    new_password: str
+
+
 # 统计相关Schema
 class AuthorStats(BaseModel):
     author_id: int
