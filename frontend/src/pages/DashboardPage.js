@@ -56,12 +56,10 @@ const DashboardPage = () => {
   };
 
   const handleEdit = () => {
-    console.log('当前用户生日:', user?.birthday);
-    
-    // 填充表单，使用parseDate函数处理日期，确保转换的一致性
+    // 填充表单，正确处理生日日期
     form.setFieldsValue({
       email: user?.email || '',
-      birthday: user?.birthday ? parseDate(user.birthday) : null,
+      birthday: user?.birthday ? moment(user.birthday) : null,
     });
     
     setEditModalVisible(true);
@@ -77,16 +75,12 @@ const DashboardPage = () => {
       
       // 使用moment格式化生日，确保格式一致
       if (userData.birthday) {
-        // 确保生日是moment对象后再格式化
-        userData.birthday = moment.isMoment(userData.birthday) 
-          ? userData.birthday.format('YYYY-MM-DD')
-          : moment(userData.birthday).format('YYYY-MM-DD');
+        userData.birthday = userData.birthday.format('YYYY-MM-DD');
+        console.log('提交的生日数据:', userData.birthday);
       }
       
-      console.log('提交的生日数据:', userData.birthday);
-      
       // 更新用户信息
-      await userAPI.updateUser(userData);
+      const response = await userAPI.updateUser(userData);
       message.success('用户信息更新成功');
       
       // 重新获取用户信息
@@ -270,13 +264,10 @@ const DashboardPage = () => {
           >
             <DatePicker 
               style={{ width: '100%' }} 
-              prefix={<CalendarOutlined />}
-              format="YYYY-MM-DD"
               placeholder="请选择生日"
+              format="YYYY-MM-DD"
               inputReadOnly={true}
               disabledDate={current => current && current > moment().endOf('day')}
-              getPopupContainer={triggerNode => triggerNode.parentNode}
-              popupStyle={{ zIndex: 1050 }}
             />
           </Form.Item>
         </Form>
