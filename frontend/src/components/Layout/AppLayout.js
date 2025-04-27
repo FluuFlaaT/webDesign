@@ -62,8 +62,23 @@ const AppLayout = ({ children, toggleTheme, isDarkMode }) => {
   return (
     <Layout style={{ minHeight: '100vh' }}>
       <Sider trigger={null} collapsible collapsed={collapsed} theme={isDarkMode ? 'dark' : 'light'}>
-        <div className="logo" style={{ height: 64, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-          <h2 style={{ color: isDarkMode ? 'white' : 'black', margin: 0 }}>
+        <div 
+          className="logo" 
+          style={{ 
+            height: 64, 
+            display: 'flex', 
+            justifyContent: 'center', 
+            alignItems: 'center',
+            overflow: 'hidden',
+            whiteSpace: 'nowrap'
+          }}
+        >
+          <h2 style={{ 
+            color: isDarkMode ? 'white' : 'black', 
+            margin: 0,
+            fontSize: collapsed ? '16px' : '18px',
+            letterSpacing: collapsed ? '0' : '-0.5px'
+          }}>
             {collapsed ? '文管' : '文章管理系统'}
           </h2>
         </div>
