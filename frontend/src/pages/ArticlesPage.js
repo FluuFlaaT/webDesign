@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Button, Modal, Form, Input, Space, Popconfirm, Card, message, Typography, Spin, Row, Col, Tabs } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, BarChartOutlined, FileTextOutlined } from '@ant-design/icons';
+import { Table, Button, Modal, Form, Input, Space, Popconfirm, Card, message, Typography, Spin, Row, Col, Tabs, Avatar, List } from 'antd';
+import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, BarChartOutlined, FileTextOutlined, UserOutlined, RightOutlined } from '@ant-design/icons';
 import { articleAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import ReactECharts from 'echarts-for-react';
 import moment from 'moment';
+import { useNavigate } from 'react-router-dom';
 
-const { Title } = Typography;
+const { Title, Text } = Typography;
 const { TextArea } = Input;
 const { TabPane } = Tabs;
 
@@ -18,6 +19,7 @@ const ArticlesPage = () => {
   const [form] = Form.useForm();
   const [searchText, setSearchText] = useState('');
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [pagination, setPagination] = useState({
     current: 1,
     pageSize: 10,
@@ -248,6 +250,12 @@ const ArticlesPage = () => {
       ]
     };
   };
+  
+  // 进入作者文章详情页
+  const goToAuthorArticles = (authorId, authorName) => {
+    // 导航到作者文章详情页，需要传递作者ID和名称
+    navigate(`/articles/author/${authorId}`, { state: { authorName } });
+  };
 
   return (
     <div>
@@ -301,16 +309,55 @@ const ArticlesPage = () => {
             key="stats"
           >
             <Spin spinning={statsLoading}>
-              {authorStats.length > 0 ? (
-                <ReactECharts 
-                  option={getStatisticsOption()} 
-                  style={{ height: 400, marginTop: 24 }}
-                />
-              ) : (
-                <div style={{ textAlign: 'center', padding: 100 }}>
-                  暂无作者统计数据
-                </div>
-              )}
+              <Row gutter={24}>
+                {/* 左侧：作者列表 */}
+                <Col span={10}>
+                  <Card title="作者列表" bordered={false}>
+                    <List
+                      itemLayout="horizontal"
+                      dataSource={authorStats}
+                      renderItem={author => (
+                        <List.Item 
+                          actions={[
+                            <Button 
+                              type="primary" 
+                              size="small" 
+                              icon={<RightOutlined />}
+                              onClick={() => goToAuthorArticles(author.author_id, author.username)}
+                            >
+                              进入文章管理
+                            </Button>
+                          ]}
+                        >
+                          <List.Item.Meta
+                            avatar={<Avatar icon={<UserOutlined />} src={author.avatar_url} />}
+                            title={author.username}
+                            description={
+                              <Text>文章数: <Text strong>{author.article_count}</Text></Text>
+                            }
+                          />
+                        </List.Item>
+                      )}
+                    />
+                  </Card>
+                </Col>
+
+                {/* 右侧：统计图表 */}
+                <Col span={14}>
+                  <Card title="文章数量统计" bordered={false}>
+                    {authorStats.length > 0 ? (
+                      <ReactECharts 
+                        option={getStatisticsOption()} 
+                        style={{ height: 400, marginTop: 24 }}
+                      />
+                    ) : (
+                      <div style={{ textAlign: 'center', padding: 100 }}>
+                        暂无作者统计数据
+                      </div>
+                    )}
+                  </Card>
+                </Col>
+              </Row>
             </Spin>
           </TabPane>
         </Tabs>

@@ -84,6 +84,11 @@ export const userAPI = {
       },
     });
   },
+  
+  // 获取作者详细信息
+  getAuthorDetail: (authorId) => {
+    return api.get(`/users/${authorId}`);
+  },
 };
 
 // 联系人相关 API
@@ -145,6 +150,16 @@ export const articleAPI = {
   getAuthorStats: () => {
     return api.get('/articles/author/stats');
   },
+  
+  // 获取特定作者的文章
+  getArticlesByAuthor: (authorId, params = {}) => {
+    return api.get('/articles', { 
+      params: { 
+        author_id: authorId,
+        ...params 
+      } 
+    });
+  }
 };
 
 export default api;

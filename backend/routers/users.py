@@ -161,3 +161,16 @@ async def upload_avatar(
         raise HTTPException(status_code=500, detail="S3存储凭证错误")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"上传头像失败: {str(e)}")
+
+
+@router.get("/{user_id}", response_model=schemas.UserResponse)
+async def get_user_by_id(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    """获取指定用户的信息"""
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="用户不存在")
+    return user

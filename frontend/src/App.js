@@ -20,6 +20,7 @@ import ResetPassword from './components/auth/ResetPassword';
 import ContactsPage from './pages/ContactsPage';
 import ArticlesPage from './pages/ArticlesPage';
 import DashboardPage from './pages/DashboardPage';
+import AuthorArticlesPage from './pages/AuthorArticlesPage';
 
 // 蓝色和黄色主题配置
 const blueTheme = {
@@ -132,6 +133,17 @@ const AppContent = () => {
               <ProtectedRoute>
                 <AppLayout toggleTheme={toggleTheme} isDarkMode={useYellowTheme}>
                   <ArticlesPage />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+          {/* 作者文章详情页路由 */}
+          <Route
+            path="/articles/author/:authorId"
+            element={
+              <ProtectedRoute>
+                <AppLayout toggleTheme={toggleTheme} isDarkMode={useYellowTheme}>
+                  <AuthorArticlesPage />
                 </AppLayout>
               </ProtectedRoute>
             }
