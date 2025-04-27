@@ -154,6 +154,9 @@ const DashboardPage = () => {
     }
   };
 
+  // 查找当前用户的文章统计
+  const currentUserStats = authorStats.find(stat => stat.author_id === user?.id) || { article_count: 0 };
+
   return (
     <div>
       <Spin spinning={loading}>

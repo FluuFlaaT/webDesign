@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Form, Input, Button, DatePicker, Card, message, Typography, Upload, Avatar } from 'antd';
-import { UserOutlined, LockOutlined, MailOutlined, UploadOutlined, PlusOutlined } from '@ant-design/icons';
+import { UserOutlined, LockOutlined, MailOutlined, UploadOutlined, PlusOutlined, CalendarOutlined } from '@ant-design/icons';
 import { Link, useNavigate } from 'react-router-dom';
 import { authAPI, userAPI } from '../../services/api';
 import moment from 'moment';
@@ -213,6 +213,7 @@ const Register = () => {
               placeholder="请选择您的生日" 
               format="YYYY-MM-DD"
               disabledDate={current => current && current > moment().endOf('day')}
+
             />
           </Form.Item>
 

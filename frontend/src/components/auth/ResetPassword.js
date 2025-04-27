@@ -9,6 +9,7 @@ import 'moment/locale/zh-cn';
 // 设置moment本地化为中文
 moment.locale('zh-cn');
 
+
 const { Title, Paragraph } = Typography;
 const { Step } = Steps;
 
@@ -30,6 +31,7 @@ const ResetPassword = () => {
       message.success('身份验证成功！');
       setUsername(values.username);
       setCurrentStep(1);
+      message.success('请输入您的生日进行身份验证');
     } catch (error) {
       console.error('身份验证失败:', error);
       if (error.response && error.response.data) {
@@ -89,7 +91,7 @@ const ResetPassword = () => {
             >
               <Input prefix={<UserOutlined />} placeholder="请输入您的用户名" />
             </Form.Item>
-
+    
             <Form.Item
               name="birthday"
               label="生日"
