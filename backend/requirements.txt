@@ -6,7 +6,7 @@ python-dotenv==1.0.0
 pymysql>=1.1.1
 python-jose==3.4.0
 passlib==1.7.4
-python-multipart==0.0.22
+python-multipart==0.0.31
 email-validator==2.0.0
 boto3==1.26.115
 cryptography>=43.0.1
