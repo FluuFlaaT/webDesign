@@ -5,7 +5,7 @@ from datetime import timedelta
 import models
 import schemas
 from database import get_db
-from auth import authenticate_user, create_access_token, get_password_hash, ACCESS_TOKEN_EXPIRE_MINUTES
+from auth import authenticate_user, create_access_token, get_password_hash, password_version, ACCESS_TOKEN_EXPIRE_MINUTES
 from typing import List
 
 router = APIRouter(
@@ -57,7 +57,7 @@ def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db:
         )
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        data={"sub": user.username}, expires_delta=access_token_expires
+        data={"sub": user.username, "pwd": password_version(user)}, expires_delta=access_token_expires
     )
     return {"access_token": access_token, "token_type": "bearer"}
 
@@ -76,27 +76,11 @@ def change_password(password_data: schemas.PasswordChange, db: Session = Depends
 
 
 @router.post("/verify-birthday", status_code=status.HTTP_200_OK)
-def verify_birthday(verification_data: schemas.BirthdayVerification, db: Session = Depends(get_db)):
-    """验证生日以重置密码"""
-    user = db.query(models.User).filter(models.User.username == verification_data.username).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="用户不存在")
-    
-    # 验证生日是否匹配
-    if not user.birthday or user.birthday != verification_data.birthday:
-        raise HTTPException(status_code=400, detail="生日信息不匹配")
-    
-    return {"message": "验证成功", "verified": True}
+def verify_birthday():
+    """Birthdays are public profile data, not proof of account ownership."""
+    raise HTTPException(status_code=410, detail="生日找回密码已停用，请联系管理员")
 
 
 @router.post("/reset-password", status_code=status.HTTP_200_OK)
-def reset_password(reset_data: schemas.PasswordReset, db: Session = Depends(get_db)):
-    """重置密码"""
-    user = db.query(models.User).filter(models.User.username == reset_data.username).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="用户不存在")
-    
-    # 更新密码
-    user.hashed_password = get_password_hash(reset_data.new_password)
-    db.commit()
-    return {"message": "密码重置成功"}
+def reset_password():
+    raise HTTPException(status_code=410, detail="未验证身份的密码重置已停用，请联系管理员")

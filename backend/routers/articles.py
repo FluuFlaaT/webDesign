@@ -45,7 +45,7 @@ def create_article(
     db: Session = Depends(get_db)
 ):
     """创建新文章"""
-    db_article = models.Article(**article.dict(), author_id=current_user.id)
+    db_article = models.Article(**article.model_dump(), author_id=current_user.id)
     db.add(db_article)
     db.commit()
     db.refresh(db_article)
@@ -85,7 +85,7 @@ def update_article(
         )
     
     # 更新文章信息
-    for key, value in article_update.dict(exclude_unset=True).items():
+    for key, value in article_update.model_dump(exclude_unset=True).items():
         setattr(db_article, key, value)
     
     db.commit()

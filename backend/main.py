@@ -1,5 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi import HTTPException
+from starlette.responses import JSONResponse
 import os
 from dotenv import load_dotenv
 from database import engine, Base, init_db
@@ -18,14 +20,47 @@ load_dotenv()
 # 创建FastAPI应用
 app = FastAPI(title="文章及用户管理系统API")
 
+
+class RequestBodyLimitMiddleware:
+    """Bound multipart parsing as well as requests without Content-Length."""
+    def __init__(self, app):
+        self.app = app
+        self.limit = int(os.getenv("MAX_REQUEST_BYTES", 6 * 1024 * 1024))
+
+    async def __call__(self, scope, receive, send):
+        if scope['type'] != 'http':
+            return await self.app(scope, receive, send)
+        for name, value in scope.get('headers', []):
+            if name.lower() == b'content-length':
+                try:
+                    if int(value) < 0:
+                        raise ValueError
+                    if int(value) > self.limit:
+                        return await JSONResponse({'detail': '请求体过大'}, status_code=413)(scope, receive, send)
+                except ValueError:
+                    return await JSONResponse({'detail': '无效的 Content-Length'}, status_code=400)(scope, receive, send)
+        total = 0
+
+        async def limited_receive():
+            nonlocal total
+            message = await receive()
+            if message['type'] == 'http.request':
+                total += len(message.get('body', b''))
+                if total > self.limit:
+                    raise HTTPException(status_code=413, detail='请求体过大')
+            return message
+
+        await self.app(scope, limited_receive, send)
+
 # 配置CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # 在生产环境中请替换为实际的前端域名
-    allow_credentials=True,
+    allow_origins=[origin.strip() for origin in os.getenv("CORS_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000").split(',') if origin.strip() and origin.strip() != '*'],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(RequestBodyLimitMiddleware)
 
 # 健康检查路由
 @app.get("/health")

@@ -8,7 +8,7 @@ const { Title } = Typography;
 
 const ChangePassword = () => {
   const [loading, setLoading] = useState(false);
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const [form] = Form.useForm();
 
   const onFinish = async (values) => {
@@ -27,8 +27,9 @@ const ChangePassword = () => {
       };
 
       await authAPI.changePassword(passwordData);
-      message.success('密码修改成功！');
+      message.success('密码修改成功，请重新登录');
       form.resetFields();
+      logout();
     } catch (error) {
       console.error('修改密码失败:', error);
       if (error.response && error.response.data) {
@@ -74,7 +75,7 @@ const ChangePassword = () => {
             label="新密码"
             rules={[
               { required: true, message: '请输入新密码!' },
-              { min: 6, message: '密码至少6个字符' }
+              { min: 8, message: '密码至少8个字符' }
             ]}
           >
             <Input.Password prefix={<LockOutlined />} placeholder="新密码" />

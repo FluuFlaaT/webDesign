@@ -33,7 +33,6 @@ frontend/yarn-error.log*
 frontend/coverage/
 frontend/.pnp/
 frontend/.pnp.js
-frontend/package-lock.json
 frontend/yarn.lock
 
 # 后端 (Python)

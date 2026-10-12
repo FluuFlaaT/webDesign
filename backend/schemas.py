@@ -1,7 +1,16 @@
-from pydantic import BaseModel, EmailStr, Field, validator
+from pydantic import BaseModel, EmailStr, ConfigDict, Field, field_validator
 from typing import Optional, List
 import datetime
 from datetime import date
+
+
+class PasswordInput(BaseModel):
+    @field_validator('password', 'new_password', check_fields=False)
+    @classmethod
+    def validate_password(cls, value):
+        if not 8 <= len(value.encode('utf-8')) <= 72:
+            raise ValueError('密码须为8到72字节')
+        return value
 
 
 # 用户相关Schema
@@ -10,7 +19,7 @@ class UserBase(BaseModel):
     email: EmailStr
 
 
-class UserCreate(UserBase):
+class UserCreate(UserBase, PasswordInput):
     password: str
     birthday: Optional[date] = None
 
@@ -18,8 +27,7 @@ class UserCreate(UserBase):
 class UserUpdate(BaseModel):
     email: Optional[EmailStr] = None
     birthday: Optional[date] = None
-    avatar_url: Optional[str] = None
-    balance: Optional[float] = None
+    model_config = ConfigDict(extra='forbid')
 
 
 class UserResponse(UserBase):
@@ -30,8 +38,7 @@ class UserResponse(UserBase):
     created_at: datetime.datetime
     updated_at: datetime.datetime
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # 文章相关Schema
@@ -54,15 +61,13 @@ class ArticleResponse(ArticleBase):
     created_at: datetime.datetime
     updated_at: datetime.datetime
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ArticleDetail(ArticleResponse):
     author: UserResponse
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # 联系人相关Schema
@@ -88,8 +93,7 @@ class ContactResponse(ContactBase):
     created_at: datetime.datetime
     updated_at: datetime.datetime
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # 认证相关Schema
@@ -102,7 +106,7 @@ class TokenData(BaseModel):
     username: Optional[str] = None
 
 
-class PasswordChange(BaseModel):
+class PasswordChange(PasswordInput):
     username: str
     old_password: str
     new_password: str
@@ -126,5 +130,4 @@ class AuthorStats(BaseModel):
     avatar_url: Optional[str]
     article_count: int
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)

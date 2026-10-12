@@ -40,7 +40,7 @@ def create_contact(
     db: Session = Depends(get_db)
 ):
     """创建新联系人"""
-    db_contact = models.Contact(**contact.dict(), user_id=current_user.id)
+    db_contact = models.Contact(**contact.model_dump(), user_id=current_user.id)
     db.add(db_contact)
     db.commit()
     db.refresh(db_contact)
@@ -79,7 +79,7 @@ def update_contact(
         raise HTTPException(status_code=404, detail="联系人不存在")
     
     # 更新联系人信息
-    for key, value in contact_update.dict(exclude_unset=True).items():
+    for key, value in contact_update.model_dump(exclude_unset=True).items():
         setattr(db_contact, key, value)
     
     db.commit()

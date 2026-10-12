@@ -9,7 +9,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(localStorage.getItem('token') || null);
   const [loading, setLoading] = useState(true);
-  const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api/v1';
+  const API_BASE_URL = import.meta.env.VITE_API_URL || '/api/v1';
   const BASE_URL = API_BASE_URL.split('/api/v1')[0]; // 获取基础URL
 
   useEffect(() => {

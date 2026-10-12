@@ -8,6 +8,11 @@ from typing import List, Optional
 import os
 import boto3
 from botocore.exceptions import NoCredentialsError
+from botocore.exceptions import ClientError
+from PIL import Image, UnidentifiedImageError
+from io import BytesIO
+from starlette.concurrency import run_in_threadpool
+import warnings
 import uuid
 import json
 from datetime import date
@@ -32,6 +37,44 @@ s3_client = boto3.client(
     region_name=os.getenv("S3_REGION", "us-east-1")
 )
 BUCKET_NAME = os.getenv("S3_BUCKET_NAME", "avatars")
+MAX_UPLOAD_BYTES = int(os.getenv("MAX_UPLOAD_BYTES", 5 * 1024 * 1024))
+MAX_AVATAR_PIXELS = int(os.getenv("MAX_AVATAR_PIXELS", 16_000_000))
+
+
+def sanitize_avatar(content):
+    """Decode and re-encode raster images; discard filenames, metadata and scripts."""
+    try:
+        with warnings.catch_warnings():
+            warnings.simplefilter('error', Image.DecompressionBombWarning)
+            with Image.open(BytesIO(content)) as image:
+                if image.format not in {'PNG', 'JPEG', 'WEBP'}:
+                    raise ValueError('unsupported image format')
+                if image.width * image.height > MAX_AVATAR_PIXELS:
+                    raise ValueError('too many pixels')
+                image.load()
+                output = BytesIO()
+                image.convert('RGBA' if 'A' in image.getbands() else 'RGB').save(output, format='PNG')
+                result = output.getvalue()
+                if len(result) > MAX_UPLOAD_BYTES:
+                    raise HTTPException(status_code=413, detail='头像文件过大')
+                return result
+    except (UnidentifiedImageError, OSError, ValueError, Image.DecompressionBombError, Image.DecompressionBombWarning):
+        raise HTTPException(status_code=400, detail='请上传有效的 PNG、JPEG 或 WebP 图片')
+
+
+def store_avatar(new_filename, content):
+    try:
+        s3_client.head_bucket(Bucket=BUCKET_NAME)
+    except ClientError as error:
+        if error.response['ResponseMetadata']['HTTPStatusCode'] != 404:
+            raise
+        s3_client.create_bucket(Bucket=BUCKET_NAME)
+        s3_client.put_bucket_policy(Bucket=BUCKET_NAME, Policy=json.dumps({
+            'Version': '2012-10-17',
+            'Statement': [{'Effect': 'Allow', 'Principal': '*', 'Action': ['s3:GetObject'],
+                           'Resource': [f'arn:aws:s3:::{BUCKET_NAME}/*']}]
+        }))
+    s3_client.put_object(Bucket=BUCKET_NAME, Key=new_filename, Body=content, ContentType='image/png')
 
 
 @router.get("/me", response_model=schemas.UserResponse)
@@ -48,10 +91,10 @@ async def update_user_me(
 ):
     """更新当前登录用户信息"""
     # 记录原始请求数据，方便调试
-    logger.info(f"更新用户信息: 用户ID={current_user.id}, 请求数据={user_update.dict()}")
+    logger.info("更新用户信息: 用户ID=%s", current_user.id)
     
     # 准备更新数据
-    update_data = user_update.dict(exclude_unset=True)
+    update_data = user_update.model_dump(exclude_unset=True)
     
     # 特殊处理生日字段，确保格式正确
     if "birthday" in update_data and update_data["birthday"] is not None:
@@ -91,7 +134,7 @@ async def update_user_me(
     except Exception as e:
         db.rollback()
         logger.error(f"更新用户信息失败: {e}")
-        raise HTTPException(status_code=500, detail=f"更新用户信息失败: {str(e)}")
+        raise HTTPException(status_code=500, detail="更新用户信息失败")
 
 
 @router.post("/avatar", response_model=schemas.UserResponse)
@@ -101,50 +144,15 @@ async def upload_avatar(
     db: Session = Depends(get_db)
 ):
     """上传用户头像"""
-    # 检查文件类型
-    if not file.content_type.startswith("image/"):
-        raise HTTPException(status_code=400, detail="只能上传图片文件")
-    
-    # 生成唯一文件名
-    file_extension = file.filename.split(".")[-1]
-    new_filename = f"{uuid.uuid4()}.{file_extension}"
+    content = await file.read(MAX_UPLOAD_BYTES + 1)
+    await file.close()
+    if len(content) > MAX_UPLOAD_BYTES:
+        raise HTTPException(status_code=413, detail='头像文件过大')
+    content = await run_in_threadpool(sanitize_avatar, content)
+    new_filename = f"{uuid.uuid4()}.png"
     
     try:
-        # 确保存储桶存在，并设置为公开访问
-        try:
-            s3_client.head_bucket(Bucket=BUCKET_NAME)
-        except:
-            # 创建桶
-            s3_client.create_bucket(Bucket=BUCKET_NAME)
-            
-            # 设置桶策略为公开读取
-            bucket_policy = {
-                "Version": "2012-10-17",
-                "Statement": [
-                    {
-                        "Sid": "PublicRead",
-                        "Effect": "Allow",
-                        "Principal": "*",
-                        "Action": ["s3:GetObject"],
-                        "Resource": [f"arn:aws:s3:::{BUCKET_NAME}/*"]
-                    }
-                ]
-            }
-            # 应用桶策略
-            s3_client.put_bucket_policy(
-                Bucket=BUCKET_NAME,
-                Policy=json.dumps(bucket_policy)
-            )
-        
-        # 上传文件到S3
-        file_content = await file.read()
-        s3_client.put_object(
-            Bucket=BUCKET_NAME,
-            Key=new_filename,
-            Body=file_content,
-            ContentType=file.content_type,
-            ACL='public-read'  # 设置对象为公开读取
-        )
+        await run_in_threadpool(store_avatar, new_filename, content)
         
         # 生成正确的URL（直接使用公开访问URL）
         s3_public_url = os.getenv('S3_PUBLIC_URL', 'http://localhost:9000')
@@ -160,7 +168,9 @@ async def upload_avatar(
     except NoCredentialsError:
         raise HTTPException(status_code=500, detail="S3存储凭证错误")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"上传头像失败: {str(e)}")
+        db.rollback()
+        logger.exception('上传头像失败')
+        raise HTTPException(status_code=500, detail="上传头像失败")
 
 
 @router.get("/{user_id}", response_model=schemas.UserResponse)

@@ -1,7 +1,10 @@
 from datetime import datetime, timedelta
 from typing import Optional
-from jose import JWTError, jwt
-from passlib.context import CryptContext
+import hashlib
+import hmac
+import bcrypt
+import jwt
+from jwt import InvalidTokenError
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
@@ -10,25 +13,37 @@ import models
 import schemas
 import os
 
-# 密码上下文
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 # OAuth2密码认证流
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/v1/auth/login")
 
 # JWT配置
-SECRET_KEY = os.getenv("SECRET_KEY", "supersecretkey")
+SECRET_KEY = os.getenv("SECRET_KEY", "")
+if len(SECRET_KEY.encode()) < 32 or SECRET_KEY in {
+    "supersecretkey", "your_super_secret_key_here"
+}:
+    raise RuntimeError("SECRET_KEY 必须配置为至少32字节的随机密钥")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 30))
 
 
 def verify_password(plain_password, hashed_password):
     """验证密码"""
-    return pwd_context.verify(plain_password, hashed_password)
+    if len(plain_password.encode()) > 72:
+        return False
+    try:
+        return bcrypt.checkpw(plain_password.encode(), hashed_password.encode())
+    except ValueError:
+        return False
 
 
 def get_password_hash(password):
     """获取密码哈希"""
-    return pwd_context.hash(password)
+    return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+
+
+def password_version(user):
+    """Bind sessions to the current password without storing its hash in a JWT."""
+    return hmac.new(SECRET_KEY.encode(), user.hashed_password.encode(), hashlib.sha256).hexdigest()
 
 
 def authenticate_user(db: Session, username: str, password: str):
@@ -48,7 +63,7 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
         expire = datetime.utcnow() + expires_delta
     else:
         expire = datetime.utcnow() + timedelta(minutes=15)
-    to_encode.update({"exp": expire})
+    to_encode.update({"exp": expire, "type": "access"})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
@@ -61,14 +76,19 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM],
+                             options={"require": ["exp", "sub", "pwd", "type"]})
         username: str = payload.get("sub")
-        if username is None:
+        if not isinstance(username, str) or not username or payload["type"] != "access":
             raise credentials_exception
         token_data = schemas.TokenData(username=username)
-    except JWTError:
+    except InvalidTokenError:
         raise credentials_exception
     user = db.query(models.User).filter(models.User.username == token_data.username).first()
     if user is None:
+        raise credentials_exception
+    version = payload["pwd"]
+    if (not isinstance(version, str) or len(version) != 64 or not version.isascii()
+            or not hmac.compare_digest(version, password_version(user))):
         raise credentials_exception
     return user

@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // 创建 axios 实例
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api/v1';
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api/v1';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -50,15 +50,6 @@ export const authAPI = {
     return api.post('/auth/change-password', passwordData);
   },
 
-  // 验证生日以重置密码
-  verifyBirthday: (username, birthday) => {
-    return api.post('/auth/verify-birthday', { username, birthday });
-  },
-
-  // 重置密码
-  resetPassword: (resetData) => {
-    return api.post('/auth/reset-password', resetData);
-  },
 };
 
 // 用户相关 API
